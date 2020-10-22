@@ -1,0 +1,29 @@
+Visual Leak Detector Version 2.5.1 installed.
+    Outputting the report to the debugger and to E:\workSpace\VS2015\test\test\memory_leak_report.txt
+WARNING: Visual Leak Detector detected memory leaks!
+---------- Block 1 at 0x00000000CAF68370: 100 bytes ----------
+  Leak Hash: 0x74FDEF48, Count: 1, Total 100 bytes
+  Call Stack (TID 22316):
+    ucrtbased.dll!malloc()
+    f:\dd\vctools\crt\vcstartup\src\heap\new_array.cpp (16): test.exe!operator new[]()
+    e:\workspace\vs2015\test\test\test.cpp (10): test.exe!main() + 0xA bytes
+    f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl (65): test.exe!invoke_main()
+    f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl (253): test.exe!__scrt_common_main_seh() + 0x5 bytes
+    f:\dd\vctools\crt\vcstartup\src\startup\exe_common.inl (296): test.exe!__scrt_common_main()
+    f:\dd\vctools\crt\vcstartup\src\startup\exe_main.cpp (17): test.exe!mainCRTStartup()
+    KERNEL32.DLL!BaseThreadInitThunk() + 0x14 bytes
+    ntdll.dll!RtlUserThreadStart() + 0x21 bytes
+  Data:
+    CD CD CD CD    CD CD CD CD    CD CD CD CD    CD CD CD CD     ........ ........
+    CD CD CD CD    CD CD CD CD    CD CD CD CD    CD CD CD CD     ........ ........
+    CD CD CD CD    CD CD CD CD    CD CD CD CD    CD CD CD CD     ........ ........
+    CD CD CD CD    CD CD CD CD    CD CD CD CD    CD CD CD CD     ........ ........
+    CD CD CD CD    CD CD CD CD    CD CD CD CD    CD CD CD CD     ........ ........
+    CD CD CD CD    CD CD CD CD    CD CD CD CD    CD CD CD CD     ........ ........
+    CD CD CD CD                                                  ........ ........
+
+
+Visual Leak Detector detected 1 memory leak (152 bytes).
+Largest number used: 152 bytes.
+Total allocations: 152 bytes.
+Visual Leak Detector is now exiting.
