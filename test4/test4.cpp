@@ -4,9 +4,8 @@
 #include "stdafx.h"
 
 #include <iostream>
-
-using namespace std;
 #include <iostream>
+#include <string>
 #include "xlnt.hpp"
 #include <windows.h>
 //#include "Ansi2Utf8.h"
@@ -16,12 +15,12 @@ using namespace xlnt;
 workbook*			m_pExcel;
 
 int					m_nCount;
-
-void doReader()
+//int nResult = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR)wstr.c_str(), nLen, (LPSTR)str.c_str(), nDesSize, NULL, NULL);
+void doReader(string s)
 {
 	worksheet				m_pCurrWorkSheet;
 
-	m_pExcel->load("C:\\Users\\zheng\\Desktop\\123.xlsx");
+	//m_pExcel->load("C:\\Users\\zheng\\Desktop\\123.xlsx");
 
 	//m_pCurrWorkSheet = m_pExcel->active_sheet();
 	//m_pCurrWorkSheet = m_pExcel->create_sheet();
@@ -29,27 +28,31 @@ void doReader()
 	//m_pCurrWorkSheet.title("abc");
 
 	//m_pExcel->save("test.xlsx");
-
-	worksheet pWk = m_pExcel->active_sheet();
-	if (m_pExcel->sheet_count() == 1 && pWk.title() == "Sheet1")
+	if (m_pExcel->contains(s))
 	{
-		m_pCurrWorkSheet = pWk;
+		worksheet pWk = m_pExcel->active_sheet();
+		if (!strcmp(s.c_str(), "Sheet1") && m_pExcel->sheet_count() == 1 && pWk.title() == "Sheet1")
+		{
+			m_pCurrWorkSheet = pWk;
+		}
+		else
+		{
+			m_pCurrWorkSheet = m_pExcel->create_sheet();
+		}
+
+		m_pCurrWorkSheet.title(s);
 	}
-	else
-	{
-		m_pCurrWorkSheet = m_pExcel->create_sheet();
-	}
-
-	m_pCurrWorkSheet.title("abc");
-
-	 
-
-	m_pCurrWorkSheet.cell(xlnt::cell_reference(1, 1)).value("ttttt");;
-
-	
 
 
-	m_pExcel->save("C:\\Users\\zheng\\Desktop\\123.xlsx");
+	m_pExcel->save("C:\\Users\\zheng\\Desktop\\1234.xlsx");
+
+	// 
+
+	//m_pCurrWorkSheet.cell(xlnt::cell_reference(1, 1)).value("ttttt");;
+
+	//
+
+
 	
 	//worksheet ws = m_pExcel->active_sheet();
 
@@ -139,7 +142,9 @@ void main()
 
 //	while (1)
 	{
-		doReader();
+		doReader("Sheet1");
+		doReader("Sheet2");
+		doReader("Sheet3");
 
 		Sleep(500);
 	}
