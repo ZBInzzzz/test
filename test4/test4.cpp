@@ -13,12 +13,131 @@ using namespace std;
 using namespace xlnt;
 
 workbook*			m_pExcel;
-
+worksheet				m_pCurrWorkSheet;
 int					m_nCount;
-//int nResult = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR)wstr.c_str(), nLen, (LPSTR)str.c_str(), nDesSize, NULL, NULL);
+
+bool				m_bSheet1;
+// int nResult = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR)wstr.c_str(), nLen, (LPSTR)str.c_str(), nDesSize, NULL, NULL);
+
+
+int preNUm(unsigned char byte) {
+	unsigned char mask = 0x80;
+	int num = 0;
+	for (int i = 0; i < 8; i++) {
+		if ((byte & mask) == mask) {
+			mask = mask >> 1;
+			num++;
+		}
+		else {
+			break;
+		}
+	}
+	return num;
+}
+
+
+bool isUtf8(unsigned char* data, int len) {
+	int num = 0;
+	int i = 0;
+	while (i < len) {
+		if ((data[i] & 0x80) == 0x00) {
+			// 0XXX_XXXX
+			i++;
+			continue;
+		}
+		else if ((num = preNUm(data[i])) > 2) {
+			// 110X_XXXX 10XX_XXXX
+			// 1110_XXXX 10XX_XXXX 10XX_XXXX
+			// 1111_0XXX 10XX_XXXX 10XX_XXXX 10XX_XXXX
+			// 1111_10XX 10XX_XXXX 10XX_XXXX 10XX_XXXX 10XX_XXXX
+			// 1111_110X 10XX_XXXX 10XX_XXXX 10XX_XXXX 10XX_XXXX 10XX_XXXX
+			// preNUm() 返回首个字节8个bits中首�?0bit前面1bit的个数，该数量也是该字符所使用的字节数        
+			i++;
+			for (int j = 0; j < num - 1; j++) {
+				//判断后面num - 1 个字节是不是都是10开
+				if ((data[i] & 0xc0) != 0x80) {
+					return false;
+				}
+				i++;
+			}
+		}
+		else {
+			//其他情况说明不是utf-8
+			return false;
+		}
+	}
+	return true;
+}
+
+bool isGBK(unsigned char* data, int len) {
+	int i = 0;
+	while (i < len) {
+		if (data[i] <= 0x7f) {
+			//编码小于等于127,只有一个字节的编码，兼容ASCII
+			i++;
+			continue;
+		}
+		else {
+			//大于127的使用双字节编码
+			if (data[i] >= 0x81 &&
+				data[i] <= 0xfe &&
+				data[i + 1] >= 0x40 &&
+				data[i + 1] <= 0xfe &&
+				data[i + 1] != 0xf7) {
+				i += 2;
+				continue;
+			}
+			else {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+typedef enum {
+	GBK,
+	UTF8,
+	UNKOWN
+} CODING;
+//需要说明的是，isGBK()是通过双字节是否落在gbk的编码范围内实现的，
+//而utf-8编码格式的每个字节都是落在gbk的编码范围内�?
+//所以只有先调用isUtf8()先判断不是utf-8编码，再调用isGBK()才有意义
+CODING GetCoding(unsigned char* data, int len) {
+	CODING coding;
+	if (isUtf8(data, len) == true) {
+		coding = UTF8;
+	}
+	else if (isGBK(data, len) == true) {
+		coding = GBK;
+	}
+	else {
+		coding = UNKOWN;
+	}
+	return coding;
+}
+
+//Unicode 转 utf-8
+bool WStringToString(const std::wstring &wstr, std::string &str)
+{
+	int nLen = (int)wstr.length();
+	int nDesSize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR)wstr.c_str(), nLen, NULL, 0, NULL, NULL);
+	str.resize(nDesSize, '\0');
+
+	int nResult = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR)wstr.c_str(), nLen, (LPSTR)str.c_str(), nDesSize, NULL, NULL);
+
+	if (nResult == 0)
+	{
+		//DWORD dwErrorCode = GetLastError();
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+
 void doReader(string s)
 {
-	worksheet				m_pCurrWorkSheet;
+
 
 	//m_pExcel->load("C:\\Users\\zheng\\Desktop\\123.xlsx");
 
@@ -28,10 +147,14 @@ void doReader(string s)
 	//m_pCurrWorkSheet.title("abc");
 
 	//m_pExcel->save("test.xlsx");
-	if (m_pExcel->contains(s))
+
+	if (!strcmp(s.c_str(), "Sheet1"))
+		m_bSheet1 = true;
+
+	if (!m_pExcel->contains(s))
 	{
 		worksheet pWk = m_pExcel->active_sheet();
-		if (!strcmp(s.c_str(), "Sheet1") && m_pExcel->sheet_count() == 1 && pWk.title() == "Sheet1")
+		if (  m_pExcel->sheet_count() == 1 && pWk.title() == "Sheet1" && !m_bSheet1)
 		{
 			m_pCurrWorkSheet = pWk;
 		}
@@ -42,9 +165,11 @@ void doReader(string s)
 
 		m_pCurrWorkSheet.title(s);
 	}
+	else
+		m_pCurrWorkSheet = m_pExcel->sheet_by_title(s);
 
 
-	m_pExcel->save("C:\\Users\\zheng\\Desktop\\1234.xlsx");
+	m_pCurrWorkSheet.merge_cells(range_reference(1,1,1,3));
 
 	// 
 
@@ -142,10 +267,53 @@ void main()
 
 //	while (1)
 	{
-		doReader("Sheet1");
-		doReader("Sheet2");
-		doReader("Sheet3");
+		char src[20] = { 0 };
+		cin >> src;
 
+		//char src[512] = "你好";
+		int len = strlen(src);
+		//printf("%s, len:%d\n",src, len);
+		char dstgbk[512] = { 0 };
+		char dstutf8[512] = { 0 };
+		int nCoding = GetCoding((unsigned char*)src, len);
+
+		cout << "coding:" << nCoding << endl;   //判断是否是utf-8
+
+
+		//wchar_t * pUnicodeBuff = NULL;
+		//int rlen = 0;
+		//rlen = MultiByteToWideChar(CP_UTF8, 0, src, -1, NULL, NULL);
+		//pUnicodeBuff = new WCHAR[rlen + 1];  //为Unicode字符串空间
+		//rlen = MultiByteToWideChar(CP_UTF8, 0, src, -1, pUnicodeBuff, rlen);
+		//rlen = WideCharToMultiByte(936, 0, pUnicodeBuff, -1, NULL, NULL, NULL, NULL); //936 为windows gb2312代码页码
+		//WideCharToMultiByte(936, 0, pUnicodeBuff, -1, dstgbk, rlen, NULL, NULL);
+		//delete[] pUnicodeBuff;
+
+
+		wchar_t * pUnicodeBuff = NULL;
+		int rlen = 0;
+		rlen = MultiByteToWideChar(936, 0, src, -1, NULL, NULL);
+		pUnicodeBuff = new WCHAR[rlen + 1];  //为Unicode字符串空间
+		rlen = MultiByteToWideChar(936, 0, src, -1, pUnicodeBuff, rlen);
+		rlen = WideCharToMultiByte(CP_UTF8, 0, pUnicodeBuff, -1, NULL, NULL, NULL, NULL); //936 为windows gb2312代码页码
+		WideCharToMultiByte(CP_UTF8, 0, pUnicodeBuff, -1, dstgbk, rlen, NULL, NULL);
+		delete[] pUnicodeBuff;
+
+
+		//中文处理
+		std::string strDes;
+		WStringToString(L"测试", strDes);
+
+		doReader(dstgbk);
+		doReader(dstgbk);
+		//doReader(sCin);
+		//doReader("Sheet1");
+		doReader("Sheet3");
+		//doReader("Sheet2");
+	
+
+		//doReader("Sheet4");
+		m_pExcel->save("E:\\workSpace\\VS2015\\test\\Debug\\1.xlsx");
 		Sleep(500);
 	}
 }
