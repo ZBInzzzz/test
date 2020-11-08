@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include <iostream>
 #include <vector>
+#include <Windows.h>
 using namespace std;
 
 
@@ -34,13 +35,28 @@ int smallLarge(vector<int> arr)
 
 int main()
 {
-	vector<int> v = { 1,2,3,1,2,0,5,6 };
+	//vector<int> v = { 1,2,3,1,2,0,5,6 };
 
-	int t = smallLarge(v);
-	if (t == -1)
-		cout << "false";
-	else
-		cout << t << endl;
+	//int t = smallLarge(v);
+	//if (t == -1)
+	//	cout << "false";
+	//else
+	//	cout << t << endl;
+
+
+    LARGE_INTEGER nFreq;
+    LARGE_INTEGER nBeginTime;
+    LARGE_INTEGER nEndTime;
+
+    double time;
+    QueryPerformanceFrequency(&nFreq);
+    QueryPerformanceCounter(&nBeginTime);
+    Sleep(1000);
+    QueryPerformanceCounter(&nEndTime);
+
+    time = (double)(nEndTime.QuadPart - nBeginTime.QuadPart) / (double)nFreq.QuadPart;
+    printf("%f\n", time);
+
 	system("pause");
     return 0;
 }
